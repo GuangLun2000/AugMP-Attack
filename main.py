@@ -847,7 +847,7 @@ def main():
         
 
         # ========== Attack Configuration ==========
-        'attack_method': 'ALIE',  # Attack method: 'GRMP', 'ALIE', 'SignFlipping', or 'Gaussian' (random model poisoning baseline)
+        'attack_method': 'Gaussian',  # Attack method: 'GRMP', 'ALIE', 'SignFlipping', or 'Gaussian' (random model poisoning baseline)
         'attack_start_round': 0,  # Round when attack phase starts (int, now all rounds use complete poisoning)
         
         # ========== ALIE Attack Parameters (only used when attack_method='ALIE') ==========

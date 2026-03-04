@@ -104,6 +104,11 @@ def setup_experiment(config):
             else:
                 client_type = "BENIGN" if client_id < num_benign else "ATTACKER"
                 print(f"    Client {client_id} ({client_type}): 0 samples WARNING: No data assigned!")
+
+        if num_benign < num_clients:
+            print("\n  [Note] Attackers are assigned only data *quantities* (sizes) for the experimental setup. "
+                  "In reality, attackers do NOT perform local training and do NOT use these local data "
+                  "(dataset-free). They also do NOT access other local agents' data.")
     
     else:
         # ========== Non-IID Distribution: Dirichlet-based Partition ==========
@@ -156,6 +161,12 @@ def setup_experiment(config):
             else:
                 client_type = "BENIGN" if client_id < num_benign else "ATTACKER"
                 print(f"    Client {client_id} ({client_type}): 0 samples WARNING: No data assigned!")
+
+        # Clarification: attackers are dataset-free
+        if num_benign < num_clients:
+            print("\n  [Note] Attackers are assigned only data *quantities* (sizes) following the non-IID distribution, "
+                  "for experimental setup. In reality, attackers do NOT perform local training and do NOT use "
+                  "these local data (dataset-free). They also do NOT access other local agents' data.")
 
     # 3. Get global test loader
     test_loader = data_manager.get_test_loader()
@@ -765,11 +776,11 @@ def main():
     config = {
         # ========== Experiment Configuration ==========
         'experiment_name': 'vgae_grmp_attack',  # Name for result files and logs
-        'seed': 42,  # Random seed for reproducibility (int), 42 is the default
+        'seed': 42069,  # Random seed for reproducibility (int), 42 is the default
         
         # ========== Federated Learning Setup ==========
         'num_clients': 7,  # Total number of federated learning clients (int)
-        'num_attackers': 2,  # Number of attacker clients (int, must be < num_clients)
+        'num_attackers': 0,  # Number of attacker clients (int, must be < num_clients)
         'num_benign_clients': None,  # Optional: Explicit number of benign clients for baseline experiment
                                     # If None, baseline will use (num_clients - num_attackers) to ensure fair comparison
                                     # If set, baseline experiment will use exactly this many benign clients
@@ -829,14 +840,14 @@ def main():
         # # -------------------------------------------
         # Decoder-only (GPT-style): 'gpt2', 'EleutherAI/pythia-160m', 'EleutherAI/pythia-1b', 'facebook/opt-125m', 'Qwen/Qwen2.5-0.5B'
         # 'model_name': 'gpt2',                      # GPT-2 124M — stable decoder baseline
-        'model_name': 'EleutherAI/pythia-160m',    # Pythia-160M (may need grad_clip_norm=0.5)
+        # 'model_name': 'EleutherAI/pythia-160m',    # Pythia-160M (may need grad_clip_norm=0.5)
         # 'model_name': 'facebook/opt-125m',         # OPT-125M (Meta)
-        # 'model_name': 'Qwen/Qwen2.5-0.5B',  # Qwen2.5-0.5B ~494M (Alibaba, LLaMA-style arch, Apache 2.0) — use BASE for fine-tuning
+        'model_name': 'Qwen/Qwen2.5-0.5B',  # Qwen2.5-0.5B ~494M (Alibaba, LLaMA-style arch, Apache 2.0) — use BASE for fine-tuning
         # num_labels and max_length: set above in Dataset Configuration based on chosen dataset
         
 
         # ========== Attack Configuration ==========
-        'attack_method': 'GRMP',  # Attack method: 'GRMP', 'ALIE', 'SignFlipping', or 'Gaussian' (random model poisoning baseline)
+        'attack_method': 'ALIE',  # Attack method: 'GRMP', 'ALIE', 'SignFlipping', or 'Gaussian' (random model poisoning baseline)
         'attack_start_round': 0,  # Round when attack phase starts (int, now all rounds use complete poisoning)
         
         # ========== ALIE Attack Parameters (only used when attack_method='ALIE') ==========
@@ -880,15 +891,15 @@ def main():
         'use_lagrangian_dual': True,  # Whether to use Lagrangian Dual mechanism (bool, True/False)
         # Distance constraint multiplier parameters
         'lambda_dist_init': 0.1,  # Initial λ_dist(t) value for distance constraint: dist(Δ_att, Δ_g) ≤ dist_bound
-        'lambda_dist_lr': 0.01,    # Learning rate for λ_dist(t) update (dual ascent step size)
+        'lambda_dist_lr': 0.001,    # Learning rate for λ_dist(t) update (dual ascent step size)
         
         # ========== Cosine Similarity Constraint Parameters (TWO-SIDED with TWO multipliers) False by default ==========
         'use_cosine_similarity_constraint': True,  # Whether to enable cosine similarity constraints (bool, True/False) False by default! open both to use pairwise sim
         'use_pairwise_similarity_in_constraint': True,  # When True and similarity constraint on: use pairwise sim (align with server_similarity_mode='pairwise') open both to use pairwise sim
         'lambda_sim_low_init': 0.1,  # Initial λ_sim_low(t) value for lower bound constraint: sim_bound_low <= sim_att
         'lambda_sim_up_init': 0.1,   # Initial λ_sim_up(t) value for upper bound constraint: sim_att <= sim_bound_up
-        'lambda_sim_low_lr': 0.01,    # Learning rate for λ_sim_low(t) update
-        'lambda_sim_up_lr': 0.01,     # Learning rate for λ_sim_up(t) update
+        'lambda_sim_low_lr': 0.001,    # Learning rate for λ_sim_low(t) update
+        'lambda_sim_up_lr': 0.001,     # Learning rate for λ_sim_up(t) update
 
         # ========== Augmented Lagrangian Method (ALM) Parameters ==========
         # Standard ALM adds quadratic penalties: (ρ/2) * g(x)^2 for each inequality constraint g(x) ≤ 0.

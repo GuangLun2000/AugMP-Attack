@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "news_text": "UN Security Council holds emergency session on border conflict in Eastern Europe.",
+    "question": "Answer in two parts: (1) exactly one word — World, Sports, Business, or Sci/Tech; (2) one concise sentence (max ~20 words) explaining why."
+  },
+  {
+    "id": 2,
+    "news_text": "National basketball league playoffs begin Saturday with two home openers.",
+    "question": "Answer in two parts: (1) exactly one word — World, Sports, Business, or Sci/Tech; (2) one concise sentence (max ~20 words) explaining why."
+  },
+  {
+    "id": 3,
+    "news_text": "Central bank leaves interest rates unchanged; stocks close mixed on Wall Street.",
+    "question": "Answer in two parts: (1) exactly one word — World, Sports, Business, or Sci/Tech; (2) one concise sentence (max ~20 words) explaining why."
+  },
+  {
+    "id": 4,
+    "news_text": "Researchers unveil faster chip design using new 3nm process technology.",
+    "question": "Answer in two parts: (1) exactly one word — World, Sports, Business, or Sci/Tech; (2) one concise sentence (max ~20 words) explaining why."
+  },
+  {
+    "id": 5,
+    "news_text": "Foreign ministers meet ahead of regional trade summit next month.",
+    "question": "Answer in two parts: (1) exactly one word — World, Sports, Business, or Sci/Tech; (2) one concise sentence (max ~20 words) explaining why."
+  },
+  {
+    "id": 6,
+    "news_text": "Star forward signs four-year contract extension with the defending champions.",
+    "question": "Answer in two parts: (1) exactly one word — World, Sports, Business, or Sci/Tech; (2) one concise sentence (max ~20 words) explaining why."
+  },
+  {
+    "id": 7,
+    "news_text": "Retail giant reports record holiday quarter revenue and higher margins.",
+    "question": "Answer in two parts: (1) exactly one word — World, Sports, Business, or Sci/Tech; (2) one concise sentence (max ~20 words) explaining why."
+  },
+  {
+    "id": 8,
+    "news_text": "Space agency schedules launch of next weather satellite constellation.",
+    "question": "Answer in two parts: (1) exactly one word — World, Sports, Business, or Sci/Tech; (2) one concise sentence (max ~20 words) explaining why."
+  },
+  {
+    "id": 9,
+    "news_text": "Marathon world record broken at major city race amid ideal conditions.",
+    "question": "Answer in two parts: (1) exactly one word — World, Sports, Business, or Sci/Tech; (2) one concise sentence (max ~20 words) explaining why."
+  },
+  {
+    "id": 10,
+    "news_text": "Oil prices slip after inventory build; energy shares lead sector losses.",
+    "question": "Answer in two parts: (1) exactly one word — World, Sports, Business, or Sci/Tech; (2) one concise sentence (max ~20 words) explaining why."
+  }
+]

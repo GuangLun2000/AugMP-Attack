@@ -1,6 +1,8 @@
 # main.py
 # This script sets up and runs a federated learning experiment with a progressive GRMP attack.
 
+import sys
+import subprocess
 import torch
 import torch.nn as nn
 import numpy as np
@@ -10,7 +12,7 @@ from pathlib import Path
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import warnings
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Sequence
 
 # Import our custom modules
 from models import NewsClassifierModel
@@ -400,6 +402,70 @@ def setup_experiment(config):
     
     return server, results_dir
 
+
+def run_downstream_task2_if_configured(config: Dict, results_dir: Path) -> None:
+    """
+    Optionally run Task 2 (run_downstream_generation.py) after FL when checkpoint exists.
+    Controlled by config['run_downstream_after_fl'].
+    """
+    if not config.get("run_downstream_after_fl", False):
+        return
+
+    ckpt_dir = results_dir / config.get("global_checkpoint_subdir", "global_checkpoint")
+    pt_file = ckpt_dir / "global_model.pt"
+    if not pt_file.is_file():
+        print(
+            f"\n⚠️  Task 2 skipped: no checkpoint at {pt_file}. "
+            "Set save_global_checkpoint=True and complete training, or run run_downstream_generation.py manually."
+        )
+        return
+
+    probes = Path(config.get("downstream_probes", "data/ag_news_curated_10.json"))
+    if not probes.is_file():
+        print(f"\n⚠️  Task 2 skipped: probes file not found: {probes}")
+        return
+
+    out_raw = config.get("downstream_output")
+    if out_raw:
+        out_path = Path(out_raw)
+        if not out_path.is_absolute():
+            out_path = results_dir / out_path
+    else:
+        out_path = results_dir / f"{config.get('experiment_name', 'experiment')}_downstream_gen.jsonl"
+
+    device = config.get("downstream_device")
+    if not device:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    extra: Sequence[str] = config.get("downstream_cli_args") or []
+    if isinstance(extra, str):
+        extra = [extra]
+
+    cmd: List[str] = [
+        sys.executable,
+        "run_downstream_generation.py",
+        "--checkpoint",
+        str(ckpt_dir),
+        "--probes",
+        str(probes),
+        "--output",
+        str(out_path),
+        "--device",
+        str(device),
+    ]
+    cmd.extend(str(x) for x in extra)
+
+    print("\n" + "=" * 60)
+    print("Task 2: downstream generation (run_downstream_generation.py)")
+    print("=" * 60)
+    print("Running:", " ".join(cmd))
+    proc = subprocess.run(cmd, cwd=Path(__file__).resolve().parent)
+    if proc.returncode != 0:
+        print(f"\n⚠️  Task 2 exited with code {proc.returncode}")
+    else:
+        print(f"\nTask 2 finished; JSONL: {out_path}")
+
+
 # Run the experiment
 def run_experiment(config):
     server, results_dir = setup_experiment(config)
@@ -457,6 +523,8 @@ def run_experiment(config):
     print(f"\nResults saved to: {results_path}")
 
     save_global_model_checkpoint(server, config, results_dir)
+
+    run_downstream_task2_if_configured(config, results_dir)
 
     # Print detailed statistics for data collection
     attacker_ids = [client.client_id for client in server.clients 
@@ -918,7 +986,6 @@ def main(config_overrides: Optional[Dict] = None):
         'rho_increase_factor': 2.0,
         'rho_min': 1e-4,
         'rho_max': 1e4,
-        
         # ========== Proxy Loss Estimation Parameters ==========
         'attacker_use_proxy_data': True,  # If True, GRMP attacker uses proxy set to estimate F(w'_g); if False, no data access (constraint-only optimization)
         'proxy_sample_size': 128,  # Number of samples in proxy dataset for F(w'_g) estimation (int)
@@ -930,6 +997,18 @@ def main(config_overrides: Optional[Dict] = None):
         # ========== Global checkpoint (for downstream generation / transfer experiments) ==========
         'save_global_checkpoint': True,  # True: save server.global_model after FL under results_dir/global_checkpoint_subdir
         'global_checkpoint_subdir': 'global_checkpoint',  # Subfolder name under results/ (same run uses results_dir from setup)
+        # ========== Task 2: optional downstream causal generation (same run as FL) ==========
+        'run_downstream_after_fl': True,  # True: subprocess run_downstream_generation.py after checkpoint save
+        'downstream_probes': 'data/ag_news_curated_10.json',  # Probe JSON path (relative to repo root / cwd)
+        'downstream_output': None,  # None -> results/<experiment_name>_downstream_gen.jsonl; else path (relative to results/ if not absolute)
+        'downstream_device': None,  # None -> cuda if available else cpu
+        # Extra CLI tokens for run_downstream_generation.py (e.g. --stable, --parse-retry-max 2)
+        'downstream_cli_args': [
+            '--stable',
+            '--write-seq-cls-argmax',
+            '--prompt-style', 'strict',
+            '--parse-strict-output',
+        ],
 
     }
     if config_overrides:

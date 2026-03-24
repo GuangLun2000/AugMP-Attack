@@ -15,6 +15,7 @@
 ├── data_loader.py                  # Data loading (AG News, IMDB, DBpedia, Yahoo Answers)
 ├── data/financial_probes.json      # 10 finance-style probes (news + question) for downstream gen
 ├── data/ag_news_simple_probes.json # 10 short probes: AG News 4-class label + concise explanation (downstream)
+├── data/ag_news_curated_10.json    # 10 real AG News rows (title+text), gold_ag_label / gold_category for eval
 ├── scripts/sample_ag_business_probes.py  # Optional: sample 10 AG News Business rows into JSON
 ├── visualization.py                # Visualization module: generates figures
 ├── attack_baseline_alie.py         # ALIE attack baseline (NeurIPS '19)
@@ -81,7 +82,8 @@ Second-stage script loads the Fed **sequence-classification** checkpoint, copies
 
 **Probes**
 
-- [`data/ag_news_simple_probes.json`](data/ag_news_simple_probes.json) — short news + instruction to output **(1)** exactly one of World / Sports / Business / Sci/Tech and **(2)** one concise explanation sentence (aligns with AG News `num_labels=4`). Recommended with **`--prompt-style simple`** and **`--stable`** (`--stable` uses `max_new_tokens=64` by default to fit label + brief rationale).
+- [`data/ag_news_curated_10.json`](data/ag_news_curated_10.json) — **real** AG News text with `news_text` = `title + " " + text` (same rule as [`data_loader.py`](data_loader.py)). Each row may include **`gold_ag_label`** (CSV-style **1–4**: 1 World, 2 Sports, 3 Business, 4 Sci/Tech, matching CharCnn AG News) and **`gold_category`** (`"World"` \| `"Sports"` \| `"Business"` \| `"Sci/Tech"`). These gold fields are **not** passed to the model; they are written to JSONL for paper-style comparisons. Recommended with **`--prompt-style strict`**, **`--stable`**, **`--parse-strict-output`**, and **`--write-seq-cls-argmax`**.
+- [`data/ag_news_simple_probes.json`](data/ag_news_simple_probes.json) — short news + instruction to output **(1)** exactly one of World / Sports / Business / Sci/Tech and **(2)** one concise explanation sentence (aligns with AG News `num_labels=4`). Recommended with **`--prompt-style simple`** and **`--stable`** (`--stable` uses `max_new_tokens=64` by default unless you use **`strict`**; see below).
 - [`data/financial_probes.json`](data/financial_probes.json) — finance-themed synthetic snippets (harder for small base LMs).
 
 To sample **AG News Business** lines into JSON, run:
@@ -94,11 +96,25 @@ python scripts/sample_ag_business_probes.py --csv AG_News_Datasets/train.csv -o 
 
 **Stability flags**
 
-- **`--stable`**: greedy decoding, `max_new_tokens=64` by default (override with `--max-new-tokens`; sized for one class word + short explanation), `repetition_penalty=1.1` unless you set `--repetition-penalty`.
+- **`--stable`**: greedy decoding; default `max_new_tokens` is **64** for `default` / `simple`, or **112** when **`--prompt-style strict`** (override with `--max-new-tokens`). Default `repetition_penalty` is **1.1**, or **1.15** with **`strict`** (unless you set `--repetition-penalty`).
 - **`--write-seq-cls-argmax`**: adds `seq_cls_label_id` / `seq_cls_label` from the **SeqCLS head** (same objective as Fed training) for a reproducible label column next to free-form `completion_*`.
-- **`--prompt-style {default,simple}`**: `simple` uses a short `News: ... / Answer:` template; `default` uses `### News` / `### Task` / `### Answer`.
+- **`--prompt-style {default,simple,strict}`**: `simple` uses a short `News: ... / Answer:` template; `default` uses `### News` / `### Task` / `### Answer`; **`strict`** asks for exactly two English lines: `Category: <World|Sports|Business|Sci/Tech>` and `Reason: <one short sentence>`, and discourages echoing the article.
+- **`--parse-strict-output`**: regex-parse `completion_primary` into **`parsed_category`**, **`parsed_reason`**, **`format_valid`**; if the probe JSON includes **`gold_category`**, also writes **`matches_gold_category`** (requires a valid parse).
 
-**Qwen2.5 + AG News example** (after saving a checkpoint with `model_name=Qwen/Qwen2.5-0.5B`, `dataset=ag_news`, `num_labels=4`):
+**Qwen2.5 + AG News (curated real probes + strict format)** (after saving a checkpoint with `model_name=Qwen/Qwen2.5-0.5B`, `dataset=ag_news`, `num_labels=4`):
+
+```bash
+python run_downstream_generation.py \
+  --checkpoint results/global_checkpoint \
+  --probes data/ag_news_curated_10.json \
+  --output results/downstream_curated.jsonl \
+  --stable \
+  --write-seq-cls-argmax \
+  --prompt-style strict \
+  --parse-strict-output
+```
+
+**Short synthetic probes** (`ag_news_simple_probes.json` + `simple` template):
 
 ```bash
 python run_downstream_generation.py \
@@ -133,7 +149,7 @@ python run_downstream_generation.py \
   --prompt-style simple
 ```
 
-JSONL fields: `probe_id`, `news_text`, `question`, `prompt_style`, `completion_primary`; with `--compare-checkpoint`, also `completion_compare` and `seq_cls_compare_*`; with `--write-seq-cls-argmax`, also `seq_cls_label_id`, `seq_cls_label`. Use `--greedy` for greedy decoding without full `--stable`; `--base-model` overrides the HF id for CausalLM/tokenizer (only if it matches the saved architecture).
+JSONL fields: `probe_id`, `news_text`, `question`, `prompt_style`, `completion_primary`; optional `gold_ag_label`, `gold_category` when present in the probe JSON; with `--compare-checkpoint`, also `completion_compare` and `seq_cls_compare_*`; with `--write-seq-cls-argmax`, also `seq_cls_label_id`, `seq_cls_label`; with **`--parse-strict-output`**, also `parsed_category`, `parsed_reason`, `format_valid`, and `matches_gold_category` when `gold_category` is defined. Use `--greedy` for greedy decoding without full `--stable`; `--base-model` overrides the HF id for CausalLM/tokenizer (only if it matches the saved architecture).
 
 ### Adding another decoder family
 

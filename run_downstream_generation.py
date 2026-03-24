@@ -11,6 +11,12 @@ Example:
 
   python run_downstream_generation.py \\
     --checkpoint results/global_checkpoint \\
+    --probes data/ag_news_curated_10.json \\
+    --output results/downstream_curated.jsonl \\
+    --prompt-style strict --stable --write-seq-cls-argmax --parse-strict-output
+
+  python run_downstream_generation.py \\
+    --checkpoint results/global_checkpoint \\
     --compare-checkpoint results_baseline/global_checkpoint \\
     --output results/downstream_compare.jsonl
 """
@@ -19,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -33,8 +40,23 @@ DEFAULT_MAX_NEW_TOKENS = 128
 # Under --stable: enough for one AG News class label + one concise explanation (~20 words)
 STABLE_MAX_NEW_TOKENS = 64
 STABLE_REPETITION_PENALTY = 1.1
+# Under --stable with --prompt-style strict: two-line Category + Reason template
+STABLE_MAX_NEW_TOKENS_STRICT = 112
+STABLE_REPETITION_PENALTY_STRICT = 1.15
 
 AG_NEWS_ID2LABEL_FALLBACK = {0: "World", 1: "Sports", 2: "Business", 3: "Sci/Tech"}
+
+_STRICT_CATEGORY_CANONICAL = {
+    "world": "World",
+    "sports": "Sports",
+    "business": "Business",
+    "sci/tech": "Sci/Tech",
+}
+_STRICT_CATEGORY_LINE = re.compile(
+    r"^\s*Category:\s*(World|Sports|Business|Sci/Tech)\s*$",
+    re.MULTILINE | re.IGNORECASE,
+)
+_STRICT_REASON_LINE = re.compile(r"^\s*Reason:\s*(.+)$", re.MULTILINE)
 
 
 def _torch_load(path: Path) -> Any:
@@ -113,19 +135,62 @@ def simple_prompt(news_text: str, question: str) -> str:
     return f"News: {news_text}\n{question}\nAnswer:"
 
 
+def strict_prompt(news_text: str, question: str) -> str:
+    """Two-line Category / Reason template; `question` ignored (single global instruction)."""
+    _ = question
+    return (
+        "You will classify one news article into exactly one AG News category.\n\n"
+        "Categories (pick exactly one word): World, Sports, Business, Sci/Tech.\n\n"
+        f"Article:\n{news_text}\n\n"
+        "Rules:\n"
+        "- Output EXACTLY two lines in English.\n"
+        "- Line 1 must be: Category: <World|Sports|Business|Sci/Tech>\n"
+        "- Line 2 must be: Reason: <one sentence, at most 25 words; explain using only evidence from the article>\n"
+        "- Do not repeat the article. Do not ask questions. No extra lines before Line 1.\n\n"
+        "Answer:\n"
+    )
+
+
+def parse_strict_completion(completion: str) -> Tuple[Optional[str], Optional[str], bool]:
+    """Extract Category / Reason lines; return (category, reason, format_valid)."""
+    text = (completion or "").strip()
+    cm = _STRICT_CATEGORY_LINE.search(text)
+    if not cm:
+        return None, None, False
+    key = cm.group(1).strip().lower()
+    category = _STRICT_CATEGORY_CANONICAL.get(key)
+    if category is None:
+        return None, None, False
+    tail = text[cm.end() :]
+    rm = _STRICT_REASON_LINE.search(tail)
+    if not rm:
+        return category, None, False
+    reason = rm.group(1).strip()
+    if not reason:
+        return category, None, False
+    return category, reason, True
+
+
 def make_prompt_fn(style: str) -> Callable[[str, str], str]:
     if style == "simple":
         return simple_prompt
+    if style == "strict":
+        return strict_prompt
     if style == "default":
         return default_prompt
-    raise ValueError(f"Unknown prompt style: {style!r} (use 'default' or 'simple')")
+    raise ValueError(f"Unknown prompt style: {style!r} (use 'default', 'simple', or 'strict')")
 
 
 def load_probes(path: Path) -> List[Dict[str, Any]]:
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
     if not isinstance(data, list):
-        raise ValueError("Probes JSON must be a list of objects with id, news_text, question")
+        raise ValueError("Probes JSON must be a list of objects with id, news_text, and optional question")
+    for i, item in enumerate(data):
+        if not isinstance(item, dict) or "news_text" not in item:
+            raise ValueError(f"Probe at index {i} must be an object with 'news_text'")
+        if "question" not in item:
+            item["question"] = ""
     return data
 
 
@@ -239,7 +304,7 @@ def run_for_checkpoint(
 
     completions = []
     for p in probes:
-        prompt = prompt_fn(p["news_text"], p["question"])
+        prompt = prompt_fn(p["news_text"], p.get("question", ""))
         text = generate_completion(
             causal,
             tokenizer,
@@ -307,9 +372,14 @@ def main() -> None:
     parser.add_argument(
         "--prompt-style",
         type=str,
-        choices=("default", "simple"),
+        choices=("default", "simple", "strict"),
         default="default",
-        help="Prompt template: 'simple' uses a short News/Answer format (easier for small LMs)",
+        help="Prompt template: 'simple' short News/Answer; 'strict' two-line Category/Reason AG News format",
+    )
+    parser.add_argument(
+        "--parse-strict-output",
+        action="store_true",
+        help="Parse completion_primary for strict Category/Reason lines; adds parsed_* and format_valid to JSONL",
     )
     parser.add_argument(
         "--write-seq-cls-argmax",
@@ -345,14 +415,20 @@ def main() -> None:
     if args.max_new_tokens is not None:
         max_new_tokens = args.max_new_tokens
     elif args.stable:
-        max_new_tokens = STABLE_MAX_NEW_TOKENS
+        max_new_tokens = (
+            STABLE_MAX_NEW_TOKENS_STRICT if args.prompt_style == "strict" else STABLE_MAX_NEW_TOKENS
+        )
     else:
         max_new_tokens = DEFAULT_MAX_NEW_TOKENS
 
     if args.stable:
         do_sample = False
         if repetition_penalty is None:
-            repetition_penalty = STABLE_REPETITION_PENALTY
+            repetition_penalty = (
+                STABLE_REPETITION_PENALTY_STRICT
+                if args.prompt_style == "strict"
+                else STABLE_REPETITION_PENALTY
+            )
 
     prompt_fn = make_prompt_fn(args.prompt_style)
     tokenizer_shared = build_tokenizer(base_name)
@@ -421,10 +497,21 @@ def main() -> None:
             row: Dict[str, Any] = {
                 "probe_id": p.get("id", i + 1),
                 "news_text": p["news_text"],
-                "question": p["question"],
+                "question": p.get("question", ""),
                 "prompt_style": args.prompt_style,
                 "completion_primary": completions_a[i],
             }
+            if "gold_ag_label" in p:
+                row["gold_ag_label"] = p["gold_ag_label"]
+            if "gold_category" in p:
+                row["gold_category"] = p["gold_category"]
+            if args.parse_strict_output:
+                pc, pr, fv = parse_strict_completion(completions_a[i])
+                row["parsed_category"] = pc
+                row["parsed_reason"] = pr
+                row["format_valid"] = fv
+                if p.get("gold_category") is not None:
+                    row["matches_gold_category"] = bool(fv and pc is not None and pc == p["gold_category"])
             if completions_b is not None:
                 row["completion_compare"] = completions_b[i]
             if seq_primary is not None:

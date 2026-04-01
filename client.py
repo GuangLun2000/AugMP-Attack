@@ -342,8 +342,6 @@ class AttackerClient(Client):
         self.other_attacker_client_ids = []
         self.other_attacker_data_sizes = {}  # {client_id: claimed_data_size}
         
-        # Data-agnostic attack: no local data usage
-        self.original_business_loader = None
         if use_proxy_data:
             self.proxy_loader = data_manager.get_proxy_eval_loader(sample_size=self.proxy_sample_size)
         else:

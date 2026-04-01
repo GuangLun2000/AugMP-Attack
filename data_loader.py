@@ -12,14 +12,6 @@ import io
 import os
 from typing import List, Dict
 
-# Constants
-LABEL_WORLD = 0
-LABEL_SPORTS = 1
-LABEL_BUSINESS = 2
-LABEL_SCITECH = 3
-
-TARGET_LABEL = LABEL_SPORTS  # Attack target: Business -> Sports
-
 class NewsDataset(Dataset):
     """Custom Dataset for text classification (AG News, IMDB, DBpedia, Yahoo Answers, etc.)"""
 

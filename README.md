@@ -1,4 +1,8 @@
-# AugMP-Attack
+# AugMP Attack to Federated LLMs
+
+- Graph Representation Learning Augmented Model Manipulation on Federated Fine-Tuning of LLMs.
+- [Hanlin Cai](https://caihanlin.com/)
+- Submitted to an IEEE Journal.
 
 ## File Structure
 

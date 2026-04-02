@@ -1,25 +1,4 @@
-# IoA-Attack-GRMP
-
-[![arXiv](https://img.shields.io/badge/arXiv-2511.07176-b31b1b?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/2511.07176) &nbsp; [![GitHub](https://img.shields.io/badge/GitHub-Code-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/GuangLun2000/IoA-Attack-GRMP)
-
-- **Graph Representation-based Model Poisoning on the Heterogeneous Internet of Agents**
-- [**Hanlin Cai**](https://caihanlin.com/), Houtianfu Wang, Haofan Dong, [Kai Li](https://sites.google.com/site/lukasunsw/), Sai Zou, [Ozgur B. Akan](https://oba.eco/)
-- Presented in the 22nd International Wireless Communications & Mobile Computing Conference (IWCMC 2026). Submitted to an IEEE Trans Journal.
-
-## Citation
-
-If this repository has been helpful to you, please consider citing our paper in your work. Thank you!
-
-```latex
-@article{cai2025graph,
-  title={Graph Representation-based Model Poisoning on the Heterogeneous Internet of Agents},
-  author={Cai, Hanlin and Wang, Houtianfu and Dong, Haofan and Li, Kai and Akan, Ozgur B},
-  journal={arXiv preprint arXiv:2511.07176},
-  year={2025}
-}
-```
-
-<br>
+# AugMP-Attack
 
 ## File Structure
 

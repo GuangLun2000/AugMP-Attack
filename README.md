@@ -60,12 +60,12 @@ python main.py
 
 ```python
 # Cell 1: Install dependencies
-!git clone https://github.com/GuangLun2000/IoA-Attack-GRMP.git
-!pip install -r ./IoA-Attack-GRMP/requirements.txt
+!git clone https://github.com/GuangLun2000/AugMP-Attack.git
+!pip install -r ./AugMP-Attack/requirements.txt
 
 # Cell 2: Run experiment
 
-!cd ./IoA-Attack-GRMP && python main.py
+!cd ./AugMP-Attack && python main.py
 ```
 
 **Option 2: Interactive Notebook (Recommended for configuration changes)**

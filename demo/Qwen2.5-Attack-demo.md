@@ -21,19 +21,6 @@ Running: /usr/bin/python3 run_downstream_generation.py --checkpoint results/glob
   Checkpoint: results/global_checkpoint/global_model.pt
   Wrote 30 lines to results/colab_downstream_gen.jsonl
 
-2026-03-30 15:26:39.283851: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:467] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
-E0000 00:00:1774884399.293436    5353 cuda_dnn.cc:8579] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-E0000 00:00:1774884399.296727    5353 cuda_blas.cc:1407] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-W0000 00:00:1774884399.304977    5353 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.
-W0000 00:00:1774884399.304991    5353 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.
-W0000 00:00:1774884399.304993    5353 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.
-W0000 00:00:1774884399.304994    5353 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.
-Some weights of Qwen2ForSequenceClassification were not initialized from the model checkpoint at Qwen/Qwen2.5-0.5B-Instruct and are newly initialized: ['score.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
-
-
 ============================================================
 ALL probe results — 30 rows from results/colab_downstream_gen.jsonl
 ============================================================
@@ -1066,7 +1053,6 @@ This classification is appropriate because the article discusses a significant h
 }
 
 ============================================================
-
 
 
 

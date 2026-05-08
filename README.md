@@ -1,8 +1,7 @@
-# AugMP Attack to Federated LLMs
+# AugMP Model Manipulation to FedLLMs
 
 - Graph Representation Learning Augmented Model Manipulation on Federated Fine-Tuning of LLMs.
-- [Hanlin Cai](https://caihanlin.com/)
-- Submitted to an IEEE Journal.
+- [Hanlin Cai](https://caihanlin.com/), Kai Li, Houtianfu Wang, Haofan Dong, Yichen Li, Falko Dressler, Ozgur B. Akan
 
 ## File Structure
 

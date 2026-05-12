@@ -63,12 +63,12 @@ python main.py
 
 ```python
 # Cell 1: Install dependencies
-!git clone https://github.com/GuangLun2000/AugMP-Attack.git
-!pip install -r ./AugMP-Attack/requirements.txt
+!git clone https://github.com/GuangLun2000/AugMP.git
+!pip install -r ./AugMP/requirements.txt
 
 # Cell 2: Run experiment
 
-!cd ./AugMP-Attack && python main.py
+!cd ./AugMP && python main.py
 ```
 
 **Option 2: Interactive Notebook (Recommended for configuration changes)**

@@ -1,5 +1,5 @@
 # visualization.py
-# Visualization module for GRMP attack experiment results
+# Visualization module for AugMP / federated fine-tuning experiment results
 # Generates plots matching the paper's Figure 3, 4, 5, and 6
 
 import matplotlib.pyplot as plt
@@ -76,7 +76,7 @@ IEEE_MARKERS = {
 
 
 class ExperimentVisualizer:
-    """Visualizer for GRMP attack experiment results"""
+    """Visualizer for federated experiment results (including AugMP runs)"""
     
     def __init__(self, results_dir: Path = Path("results")):
         self.results_dir = Path(results_dir)
@@ -532,15 +532,15 @@ class ExperimentVisualizer:
                        dpi=600, bbox_inches='tight')
         plt.close()
     
-    def plot_figure6_local_accuracy_with_attack(self, local_accuracies: Dict[int, List[float]], 
+    def plot_figure6_local_accuracy_by_client_type(self, local_accuracies: Dict[int, List[float]], 
                                                 rounds: List[int], 
                                                 attacker_ids: List[int],
                                                 save_path: Optional[str] = None,
                                                 num_clients: Optional[int] = None,
                                                 num_attackers: Optional[int] = None):
         """
-        Figure 6: Learning accuracy of local LLM agents under the GRMP attack 
-        over communication rounds.
+        Figure 6: Local testing accuracy of federated clients over communication rounds
+        (benign vs AugMP / other non-benign roles; client grouping uses attacker_ids from the run).
         
         Args:
             local_accuracies: Dict mapping client_id to list of local accuracies per round
@@ -638,7 +638,7 @@ class ExperimentVisualizer:
             plt.savefig(save_path, dpi=600, bbox_inches='tight')
             print(f"  ✅ Saved Figure 6 to: {save_path}")
         else:
-            plt.savefig(self.results_dir / 'figure6_local_accuracy_with_attack.png', 
+            plt.savefig(self.results_dir / 'figure6_local_accuracy_by_client_type.png', 
                        dpi=600, bbox_inches='tight')
         plt.close()
     
@@ -758,7 +758,7 @@ class ExperimentVisualizer:
                     # Create a copy to avoid modifying original data
                     server_log_data = server_log_data[:num_rounds]
         
-        # Figure 1: Global Accuracy Stability (from attack experiment)
+        # Figure 1: Global Accuracy Stability (non-baseline run)
         print("\n📊 Generating Figure 1: Global Accuracy Stability...")
         self.plot_figure3_global_accuracy_stability(
             server_log_data,
@@ -766,7 +766,7 @@ class ExperimentVisualizer:
             num_rounds=num_rounds
         )
         
-        # Figure 2: Cosine Similarity (from attack experiment)
+        # Figure 2: Cosine Similarity (non-baseline run)
         print("📊 Generating Figure 2: Cosine Similarity...")
         self.plot_figure4_cosine_similarity(
             server_log_data,
@@ -777,9 +777,9 @@ class ExperimentVisualizer:
             num_attackers=num_attackers
         )
         
-        # Figure 3: Local Accuracy (With Attack)
+        # Figure 3: Local accuracy by client
         if local_accuracies is not None:
-            print("📊 Generating Figure 3: Local Accuracy (With Attack)...")
+            print("📊 Generating Figure 3: Local accuracy by client...")
             if attacker_ids is None:
                 attacker_ids = []
             
@@ -794,7 +794,7 @@ class ExperimentVisualizer:
                     accs = accs[:len(rounds)]
                 aligned_local_accs[cid] = accs
             
-            self.plot_figure6_local_accuracy_with_attack(
+            self.plot_figure6_local_accuracy_by_client_type(
                 aligned_local_accs, rounds, attacker_ids,
                 save_path=self.results_dir / f'{experiment_name}_figure3.png',
                 num_clients=num_clients,
@@ -804,7 +804,7 @@ class ExperimentVisualizer:
             print("  ⚠️  Figure 3 skipped: Local accuracies not available.")
             print("     Local accuracies are automatically tracked during training.")
         
-        # Figure 4: Euclidean Distance (from attack experiment)
+        # Figure 4: Euclidean Distance (non-baseline run)
         print("📊 Generating Figure 4: Euclidean Distance...")
         self.plot_figure4_euclidean_distance(
             server_log_data,

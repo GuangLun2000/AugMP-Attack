@@ -1,6 +1,6 @@
 # models.py
 # This module defines the NewsClassifierModel for News classification
-# and the VGAE model for GRMP attack.
+# and the VGAE model used by AugMP (graph-augmented model manipulation).
 #
 # Supported Model Architectures:
 # - Encoder-only (BERT-style): distilbert-base-uncased, bert-base-uncased, roberta-base, deberta-v3-base
@@ -360,10 +360,10 @@ class GraphConvolutionLayer(nn.Module):
 
 class VGAE(nn.Module):
     """
-    Variational Graph Autoencoder (VGAE) for GRMP attack.
+    Variational Graph Autoencoder (VGAE) for AugMP.
     
     This model learns the relational structure among benign updates (as a graph)
-    to generate adversarial gradients that mimic legitimate patterns.
+    to produce graph-conditioned directions aligned with benign update patterns.
     
     Standard VGAE architecture:
     - Encoder: Two-layer GCN that outputs mean (μ) and log variance (log σ²)

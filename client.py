@@ -297,7 +297,7 @@ class AttackerClient(Client):
             vgae_kl_weight: Weight for KL divergence term in VGAE loss (default: 0.1)
             proxy_steps: Number of optimization steps for attack objective (default: 20)
             grad_clip_norm: Kept for compatibility; proxy step uses proxy_grad_clip_norm if set.
-            proxy_grad_clip_norm: Gradient clipping for GRMP proxy parameter update only (default: None = use grad_clip_norm). Separate from benign client training.
+            proxy_grad_clip_norm: Gradient clipping for AugMP proxy parameter update only (default: None = use grad_clip_norm). Separate from benign client training.
             use_proxy_data: If True, use proxy set to estimate F(w'_g); if False, no data access (constraint-only optimization) (default: True)
         
         Note: lr, local_epochs, and alpha must be explicitly provided to ensure consistency
@@ -2604,10 +2604,10 @@ class AttackerClient(Client):
 
     def camouflage_update(self, poisoned_update: torch.Tensor) -> torch.Tensor:
         """
-        GRMP Attack using VGAE + GSP (data-agnostic attack).
+        AugMP camouflage update using VGAE + GSP (data-agnostic; no local private data).
         
-        Attackers are not assigned local data and do not perform local training.
-        The attack is generated purely from benign updates using VGAE+GSP.
+        AugMP clients are not assigned local training data and do not perform local training.
+        The submitted update is constructed from benign clients' updates via VGAE+GSP.
         
         Paper Algorithm 1:
         1. Calculate A according to cosine similarity (eq. 8)
@@ -2615,10 +2615,10 @@ class AttackerClient(Client):
         3. Use GSP module to obtain F̂, determine w'_j(t) based on F̂
         
         Args:
-            poisoned_update: Zero update (attackers don't train, so this is always zero)
+            poisoned_update: Zero update (AugMP clients don't train locally, so this is always zero)
         
         Returns:
-            Malicious update generated using VGAE+GSP
+            Camouflaged model update generated using VGAE+GSP
         """
         if not self.benign_updates:
             print(f"    [Attacker {self.client_id}] No benign updates, return zero update")
@@ -3877,7 +3877,7 @@ class AttackerClient(Client):
         final_global_loss = self._proxy_global_loss(final_aggregated_update, max_batches=self.proxy_max_batches_eval, skip_dim_check=True)
         
         malicious_norm = torch.norm(malicious_update).item()
-        log_msg = f"    [Attacker {self.client_id}] GRMP Attack: " \
+        log_msg = f"    [Attacker {self.client_id}] AugMP: " \
                   f"F(w'_g)={final_global_loss.item():.4f}, " \
                   f"||w'_j||={malicious_norm:.4f}"
         

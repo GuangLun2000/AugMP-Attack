@@ -7,7 +7,7 @@ Global checkpoint (Fed → downstream)
   "num_labels": 4,
   "use_lora": true,
   "architecture": "decoder",
-  "experiment_name": "vgae_grmp_attack",
+  "experiment_name": "vgae_augmp",
   "saved_at_utc": "2026-03-30T15:25:46.929855+00:00",
   "lora_r": 8,
   "lora_alpha": 16,

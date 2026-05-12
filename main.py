@@ -1,5 +1,5 @@
 # main.py
-# This script sets up and runs a federated learning experiment with a progressive GRMP attack.
+# This script sets up and runs a federated learning experiment (benign fine-tuning and optional AugMP clients).
 
 import sys
 import subprocess
@@ -241,7 +241,9 @@ def setup_experiment(config):
             )
         else:
             # --- Attacker Client ---
-            attack_method = config.get('attack_method', 'GRMP')
+            attack_method = config.get('attack_method', 'AugMP')
+            if attack_method == 'GRMP':
+                attack_method = 'AugMP'  # legacy config alias for proposed method
             
             # Use actual assigned data size for claimed_data_size (for fair weighted aggregation)
             # Note: Attackers are data-agnostic (don't use data for training), but use assigned
@@ -332,8 +334,8 @@ def setup_experiment(config):
                     gaussian_std_scale=gaussian_std_scale
                 )
             else:
-                # ========== GRMP Attack Client (default) ==========
-                print(f"  Client {client_id}: ATTACKER (GRMP Attack - VGAE Enabled)")
+                # ========== AugMP client (default proposed method; legacy attack_method='GRMP' normalized above) ==========
+                print(f"  Client {client_id}: AugMP participant (VGAE enabled)")
                 if config_claimed is None:
                     print(f"    Claimed data size D'_j(t): {claimed_data_size} (matches assigned data)")
                 else:
@@ -846,7 +848,7 @@ def analyze_results(metrics):
 def main(config_overrides: Optional[Dict] = None):
     config = {
         # ========== Experiment Configuration ==========
-        'experiment_name': 'vgae_grmp_attack',  # Name for result files and logs
+        'experiment_name': 'vgae_augmp',  # Name for result files and logs
         'seed': 42069,  # Random seed for reproducibility (int), 42 is the default
         
         # ========== Federated Learning Setup ==========
@@ -918,7 +920,7 @@ def main(config_overrides: Optional[Dict] = None):
         
 
         # ========== Attack Configuration ==========
-        'attack_method': 'GRMP',  # Attack method: 'GRMP', 'ALIE', 'SignFlipping', or 'Gaussian' (random model poisoning baseline)
+        'attack_method': 'AugMP',  # Proposed: 'AugMP' (legacy alias 'GRMP'). Baselines: 'ALIE', 'SignFlipping', 'Gaussian'
         'attack_start_round': 0,  # Round when attack phase starts (int, now all rounds use complete poisoning)
         
         # ========== ALIE Attack Parameters (only used when attack_method='ALIE') ==========
@@ -944,10 +946,10 @@ def main(config_overrides: Optional[Dict] = None):
         # ========== Graph Construction Parameters ==========
         'graph_threshold': 0.5,  # Cosine similarity threshold for adjacency matrix: A[i,j]=1 if sim(Δ_i,Δ_j)>threshold, else 0. Higher=sparser graph
 
-        # ========== GRMP Attack Optimization Parameters ==========
+        # ========== AugMP proxy optimization parameters ==========
         'proxy_step': 0.001,  # Step size for gradient-free ascent toward global-loss proxy
-        'proxy_steps': 200,  # Number of optimization steps for attack objective (int)
-        'attacker_proxy_grad_clip_norm': 1.0,  # GRMP attacker proxy parameter update only; separate from benign training
+        'proxy_steps': 200,  # Number of optimization steps for AugMP proxy objective (int)
+        'attacker_proxy_grad_clip_norm': 1.0,  # AugMP proxy-parameter update only; separate from benign training
         'attacker_claimed_data_size': None,  # None = use actual assigned data size
         'early_stop_constraint_stability_steps': 1,  # Early stopping: stop after N consecutive steps satisfying constraint (int)
 
@@ -956,7 +958,7 @@ def main(config_overrides: Optional[Dict] = None):
         'sim_bound_low': None,  # Manual lower bound for cosine similarity (None = use benign min). e.g. 0.0 to require non-negative similarity
         'sim_bound_up': None,   # Manual upper bound for cosine similarity (None = use benign mean)
         # Server cosine similarity mode: 'local_vs_global' (each client vs Δ_g) | 'pairwise' (local vs local, report mean to others) | 'both'
-        'server_similarity_mode': 'pairwise',  # Use 'pairwise' to avoid self-comparison; set to 'local_vs_global' to match attack constraint definition
+        'server_similarity_mode': 'pairwise',  # Use 'pairwise' to avoid self-comparison; set to 'local_vs_global' to match AugMP constraint definition
 
         # ========== Lagrangian Dual Parameters ==========
         'use_lagrangian_dual': True,  # Whether to use Lagrangian Dual mechanism (bool, True/False)
@@ -987,7 +989,7 @@ def main(config_overrides: Optional[Dict] = None):
         'rho_min': 1e-4,
         'rho_max': 1e4,
         # ========== Proxy Loss Estimation Parameters ==========
-        'attacker_use_proxy_data': True,  # If True, GRMP attacker uses proxy set to estimate F(w'_g); if False, no data access (constraint-only optimization)
+        'attacker_use_proxy_data': True,  # If True, AugMP client uses proxy set to estimate F(w'_g); if False, no data access (constraint-only optimization)
         'proxy_sample_size': 128,  # Number of samples in proxy dataset for F(w'_g) estimation (int)
                                 # Increased from 128 to 512 for better accuracy (4 batches with test_batch_size=128)
         'proxy_max_batches_opt': 1,  # Max batches per _proxy_global_loss call in optimization loop (int)
@@ -1013,7 +1015,9 @@ def main(config_overrides: Optional[Dict] = None):
 
     # Run experiment (attack if num_attackers > 0, baseline if num_attackers == 0)
     if config.get('num_attackers', 0) > 0:
-        attack_method = config.get('attack_method', 'GRMP')
+        attack_method = config.get('attack_method', 'AugMP')
+        if attack_method == 'GRMP':
+            attack_method = 'AugMP'  # legacy config alias for proposed method
         if attack_method == 'ALIE':
             print("Running ALIE Attack (Model Poisoning Baseline)...")
         elif attack_method == 'SignFlipping':
@@ -1021,7 +1025,7 @@ def main(config_overrides: Optional[Dict] = None):
         elif attack_method == 'Gaussian':
             print("Running Gaussian Attack (Random Model Poisoning Baseline)...")
         else:
-            print("Running GRMP Attack with VGAE...")
+            print("Running AugMP (graph-augmented model manipulation) with VGAE...")
     else:
         print("Running Baseline Experiment (No Attack)...")
     

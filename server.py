@@ -109,9 +109,9 @@ class Server:
         """
         Compute cosine similarities between each update and the weighted average update.
         
-        CRITICAL: Uses weighted aggregation (FedAvg style) to match attack optimization distance definition.
+        CRITICAL: Uses weighted aggregation (FedAvg style) to match the weighted-update distance definition used in camouflage optimization.
         
-        Definition (consistent with attack optimization):
+        Definition (consistent with weighted FedAvg reference update):
             sim_i = cosine_similarity(Δ_i, Δ_g)
             where Δ_g = Σ_j (D_j / D_total) * Δ_j (weighted average, FedAvg style)
         
@@ -127,7 +127,7 @@ class Server:
         """
         n_updates = len(updates)
 
-        print("  📊 Computing cosine similarities (weighted aggregation, matches attack optimization)")
+        print("  📊 Computing cosine similarities (weighted aggregation, matches camouflage optimization)")
 
         # Compute weighted average (shared with distance calculation)
         weighted_avg, _ = self._compute_weighted_average(updates, client_ids)
@@ -162,9 +162,9 @@ class Server:
         """
         Compute Euclidean distances between each update and the weighted average update.
         
-        CRITICAL: Uses weighted aggregation (FedAvg style) to match attack optimization distance definition.
+        CRITICAL: Uses weighted aggregation (FedAvg style) to match the weighted-update distance definition used in camouflage optimization.
         
-        Definition (consistent with attack optimization):
+        Definition (consistent with weighted FedAvg reference update):
             dist_i = ||Δ_i - Δ_g||
             where Δ_g = Σ_j (D_j / D_total) * Δ_j (weighted average, FedAvg style)
         
@@ -180,7 +180,7 @@ class Server:
         """
         n_updates = len(updates)
         
-        print("  📊 Computing Euclidean distances (weighted aggregation, matches attack optimization)")
+        print("  📊 Computing Euclidean distances (weighted aggregation, matches camouflage optimization)")
         
         # Compute weighted average (shared with similarity calculation)
         weighted_avg, _ = self._compute_weighted_average(updates, client_ids)
@@ -452,9 +452,9 @@ class Server:
                 total_data_size += client_data_size
         
         for client in self.clients:
-            # Use is_attacker attribute instead of isinstance to support both GRMP and ALIE attackers
+            # Use is_attacker attribute instead of isinstance to support both AugMP and ALIE clients
             if getattr(client, 'is_attacker', False):
-                # Set global model params and constraint params (for GRMP attackers)
+                # Set global model params and constraint params (for AugMP and compatible clients)
                 # ALIE attackers also implement these methods for interface compatibility
                 client.set_global_model_params(global_params)
                 # Set constraint parameters: d_T, total_data_size, and benign_data_sizes
@@ -473,7 +473,7 @@ class Server:
         print("\n🔧 Phase 1: Client Preparation")
         for client in self.clients:
             client.set_round(round_num)
-            # Use is_attacker attribute instead of isinstance to support both GRMP and ALIE attackers
+            # Use is_attacker attribute instead of isinstance to support both AugMP and ALIE clients
             if getattr(client, 'is_attacker', False):
                 client.prepare_for_round(round_num)
 

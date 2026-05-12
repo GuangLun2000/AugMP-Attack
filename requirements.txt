@@ -1,4 +1,4 @@
-# Core dependencies for GRMP attack simulation with GPU support
+# Core dependencies for AugMP federated fine-tuning simulation with GPU support
 torch>=2.0.0
 transformers>=4.37.0,<5.0.0  # 4.37+ for Qwen2/Qwen2.5 support
 numpy>=1.21.0

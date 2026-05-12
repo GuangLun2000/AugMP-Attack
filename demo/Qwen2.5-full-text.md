@@ -3,23 +3,17 @@ Global checkpoint (Fed → downstream)
 ============================================================
 ✅ Found: results/global_checkpoint/global_model.pt
 {
-  "model_name": "Qwen/Qwen2.5-0.5B-Instruct",
+  "model_name": "Qwen/Qwen2.5-0.5B",
   "num_labels": 4,
   "use_lora": true,
   "architecture": "decoder",
   "experiment_name": "vgae_augmp",
-  "saved_at_utc": "2026-03-30T15:25:46.929855+00:00",
   "lora_r": 8,
   "lora_alpha": 16,
   "lora_dropout": 0.1,
   "lora_target_modules": null
 }
 Running: /usr/bin/python3 run_downstream_generation.py --checkpoint results/global_checkpoint --probes data/ag_news_business_30.json --output results/colab_downstream_gen.jsonl --stable --device cuda
-  Loaded model: Qwen2ForSequenceClassification (from Qwen/Qwen2.5-0.5B-Instruct) with LoRA
-  Trainable params: 1,084,928 (0.22% of 495,121,280 total)
-  SeqCLS argmax predictions: 30 probes
-  Checkpoint: results/global_checkpoint/global_model.pt
-  Wrote 30 lines to results/colab_downstream_gen.jsonl
 
 ============================================================
 ALL probe results — 30 rows from results/colab_downstream_gen.jsonl
@@ -1053,7 +1047,3 @@ This classification is appropriate because the article discusses a significant h
 }
 
 ============================================================
-
-
-
-

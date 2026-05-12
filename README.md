@@ -23,7 +23,7 @@
 ├── attack_baseline_alie.py            # ALIE baseline (NeurIPS ’19)
 ├── attack_baseline_gaussian.py        # Gaussian baseline (USENIX Security ’20)
 ├── attack_baseline_sign_flipping.py   # Sign-flipping baseline (ICML ’18)
-├── AugMP_Attack_Colab.ipynb            # Colab-oriented notebook
+├── AugMP_Colab.ipynb                  # Colab-oriented notebook (AugMP)
 └── data/                              # Datasets for Task 1 and Task 2
 ```
 
@@ -73,7 +73,7 @@ python main.py
 
 **Option 2: Interactive Notebook (Recommended for configuration changes)**
 
-1. Open `AugMP_Attack_Colab.ipynb` in Google Colab
+1. Open `AugMP_Colab.ipynb` in Google Colab
 2. Enable GPU: Runtime → Change runtime type → GPU
 3. Run all cells: Runtime → Run all
 

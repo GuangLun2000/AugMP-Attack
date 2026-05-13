@@ -1,6 +1,6 @@
 # AugMP Model Manipulation on FedLLMs
 
-[![arXiv](https://img.shields.io/badge/arXiv-2511.07176-b31b1b?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/2605.07961) &nbsp; [![GitHub](https://img.shields.io/badge/GitHub-Code-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/GuangLun2000/AugMP)
+[![arXiv](https://img.shields.io/badge/arXiv-2605.07961-b31b1b?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/2605.07961) &nbsp; [![GitHub](https://img.shields.io/badge/GitHub-Code-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/GuangLun2000/AugMP)
 
 - Graph Representation Learning Augmented Model Manipulation on Federated Fine-Tuning of LLMs.
 - [**Hanlin Cai**](https://caihanlin.com/), Kai Li, Houtianfu Wang, Haofan Dong, Yichen Li, Falko Dressler, Ozgur B. Akan
@@ -8,16 +8,29 @@
 
 ---
 
+## Overview
+
+Federated fine-tuning (FFT) has emerged as a privacy-preserving paradigm for collaboratively adapting large language models (LLMs). Built upon federated learning, FFT enables distributed agents to jointly refine a shared pretrained LLM by aggregating local LLM updates without sharing local raw data. However, FFT-based LLMs remain vulnerable to model manipulation threats, in which adversarial participants upload manipulated LLM updates that corrupt the aggregation process and degrade the performance of the global LLM. In this paper, we propose an Augmented Model maniPulation (AugMP) strategy against FFT-based LLMs. Specifically, we design a novel graph representation learning framework that captures feature correlations among benign LLM updates to guide the generation of malicious updates. To enhance manipulation effectiveness and stealthiness, we develop an iterative manipulation algorithm based on an augmented Lagrangian dual formulation. Through this formulation, malicious updates are optimized to embed adversarial objectives while preserving benign-like parameter characteristics. Experimental results across multiple LLM backbones demonstrate that the AugMP strategy achieves the strongest manipulation performance among all competing baselines, reducing the global LLM accuracy by up to 26% and degrading the average accuracy of local LLM agents by up to 22%. Meanwhile, AugMP maintains high statistical and geometric consistency with benign updates, enabling it to evade conventional distance- and similarity-based defense methods.
+
+### Figures
+
+| AugMP framework (logic) | Experimental results | Model output (example) |
+| :---: | :---: | :---: |
+| ![AugMP framework](Figure/AugMP.png) | ![Results](Figure/results.png) | ![Model output](Figure/output.png) |
+
+---
+
 ## File Structure
 
-```python
+```text
 .
 ├── .gitignore
 ├── LICENSE
 ├── README.md                          # This documentation
 ├── requirements.txt                   # Python dependencies
+├── Figure/                            # Paper figures (overview, results, outputs)
 ├── main.py                            # Entry: configure and run federated learning
-├── client.py                          # BenignClient, AttackerClient (AugMP proposed path), baselines hook
+├── client.py                          # BenignClient, manipulator client (AugMP path), baselines hook
 ├── server.py                          # Aggregation, evaluation, round orchestration
 ├── models.py                          # NewsClassifierModel, VGAE, etc.
 ├── data_loader.py                     # DataManager / datasets (AG News, Yahoo Answers, IMDB, DBpedia)
@@ -31,6 +44,8 @@
 ├── AugMP_Colab.ipynb                  # Colab-oriented notebook (AugMP)
 └── data/                              # Training and testing datasets
 ```
+
+> **Note:** `client.py` exposes a manipulator-role client class named `AttackerClient` for compatibility with common FL codebases; filenames `attack_baseline_*.py` match prior work and import paths.
 
 ## Supported Models
 
@@ -49,6 +64,14 @@
 <br>
 
 ## Install Dependencies
+
+Local shell:
+
+```bash
+pip install -r requirements.txt
+```
+
+Google Colab (notebook cell):
 
 ```python
 !pip install -r requirements.txt
@@ -102,7 +125,7 @@ python run_downstream_generation.py \
   --stable
 ```
 
-`--stable` is a conservative greedy preset; use **`--help`** for decoding flags. Each output line is JSONL (labels + text); compare predictions to ground-truth categories and read the rationale fields to study poisoning.
+`--stable` is a conservative greedy preset; use **`--help`** for decoding flags. Each output line is JSONL (labels + text); compare predictions to ground-truth categories and read the rationale fields to analyze downstream behavior under different global models (including manipulation settings).
 
 **Other decoder families:** implement `DecoderAdapter` (`matches`, `transfer_backbone`), append to **`ADAPTER_REGISTRY`** in [`decoder_adapters.py`](decoder_adapters.py), then point Task 2 at checkpoints with the same **`model_name`**.
 

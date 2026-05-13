@@ -10,7 +10,11 @@ import pandas as pd
 import urllib.request
 import io
 import os
-from typing import List, Dict
+from pathlib import Path
+from typing import List, Dict, Optional, Tuple
+
+# Repository root (stable regardless of current working directory)
+_REPO_ROOT = Path(__file__).resolve().parent
 
 class NewsDataset(Dataset):
     """Custom Dataset for text classification (AG News, IMDB, DBpedia, Yahoo Answers, etc.)"""
@@ -191,15 +195,26 @@ class DataManager:
     def _load_yahoo_answers(self):
         """
         Load Yahoo Answers 10-category dataset.
-        1. Check Yahoo_Answers_Datasets/ directory first (like AG News).
-        2. If not found, download from Hugging Face and save to local for next time.
+        1. Check under data/ (canonical) then legacy Yahoo_Answers_Datasets/ at repo root.
+        2. If not found, download from Hugging Face and save under data/Yahoo_Answers_Datasets/.
         """
-        data_dir = 'Yahoo_Answers_Datasets'
-        train_file = os.path.join(data_dir, 'train.csv')
-        test_file = os.path.join(data_dir, 'test.csv')
+        yahoo_local_dirs = [
+            _REPO_ROOT / "data" / "Yahoo! Answers Datasets",
+            _REPO_ROOT / "data" / "Yahoo_Answers_Datasets",
+            _REPO_ROOT / "Yahoo_Answers_Datasets",
+        ]
+        train_file: Optional[str] = None
+        test_file: Optional[str] = None
+        data_dir_used: Optional[Path] = None
+        for d in yahoo_local_dirs:
+            tr, te = d / "train.csv", d / "test.csv"
+            if tr.is_file() and te.is_file():
+                train_file, test_file = str(tr), str(te)
+                data_dir_used = d
+                break
 
-        if os.path.exists(train_file) and os.path.exists(test_file):
-            print(f"  ✅ Found local data files in {data_dir}/ directory. Loading...")
+        if train_file and test_file:
+            print(f"  ✅ Found local Yahoo Answers CSVs in {data_dir_used}/. Loading...")
             train_df = pd.read_csv(train_file, header=None, names=['label', 'text'], quoting=1)
             test_df = pd.read_csv(test_file, header=None, names=['label', 'text'], quoting=1)
             self.train_texts = train_df['text'].fillna('').astype(str).tolist()
@@ -246,13 +261,16 @@ class DataManager:
             self.test_texts = test_texts
             self.test_labels = [int(x) - 1 for x in test_labels_raw]
 
-            # Save to local for next time (like AG News)
-            os.makedirs(data_dir, exist_ok=True)
+            # Save to local for next time (ASCII path under data/)
+            save_dir = _REPO_ROOT / "data" / "Yahoo_Answers_Datasets"
+            save_dir.mkdir(parents=True, exist_ok=True)
+            train_out = save_dir / "train.csv"
+            test_out = save_dir / "test.csv"
             train_save = pd.DataFrame({'label': [l + 1 for l in self.train_labels], 'text': self.train_texts})
             test_save = pd.DataFrame({'label': [l + 1 for l in self.test_labels], 'text': self.test_texts})
-            train_save.to_csv(train_file, index=False, header=False, quoting=1)
-            test_save.to_csv(test_file, index=False, header=False, quoting=1)
-            print(f"  ✅ Saved to {data_dir}/ for future use.")
+            train_save.to_csv(str(train_out), index=False, header=False, quoting=1)
+            test_save.to_csv(str(test_out), index=False, header=False, quoting=1)
+            print(f"  ✅ Saved to {save_dir}/ for future use.")
 
         print(f"  📊 Full Yahoo Answers Dataset: Train={len(self.train_texts)}, Test={len(self.test_texts)}")
 
@@ -272,61 +290,70 @@ class DataManager:
 
     def _load_ag_news(self):
         """
-        [OPTIMIZED] Robust data loading with local cache priority.
-        1. Check AG_News_Datasets/ directory first (if exists).
-        2. Check root directory for train.csv/test.csv.
-        3. If not found, download from GitHub.
-        4. Strict failure if download fails (No synthetic data).
+        Robust AG News loading with local cache priority (paths relative to this repo).
+        1. data/AG News Datasets/train.csv & test.csv (canonical)
+        2. data/AG_News_Datasets/
+        3. AG_News_Datasets/ at repo root (legacy)
+        4. train.csv & test.csv at repo root (legacy)
+        5. Download from GitHub into data/AG News Datasets/
         """
-        # Priority 1: Check AG_News_Datasets/ directory
-        train_file_alt = 'AG_News_Datasets/train.csv'
-        test_file_alt = 'AG_News_Datasets/test.csv'
-        # Priority 2: Check root directory
-        train_file = 'train.csv'
-        test_file = 'test.csv'
-        
-        # URLs (verified: mhjabreel/CharCnn_Keras is a reliable source)
+        candidates: List[Tuple[Path, Path]] = [
+            (
+                _REPO_ROOT / "data" / "AG News Datasets" / "train.csv",
+                _REPO_ROOT / "data" / "AG News Datasets" / "test.csv",
+            ),
+            (
+                _REPO_ROOT / "data" / "AG_News_Datasets" / "train.csv",
+                _REPO_ROOT / "data" / "AG_News_Datasets" / "test.csv",
+            ),
+            (
+                _REPO_ROOT / "AG_News_Datasets" / "train.csv",
+                _REPO_ROOT / "AG_News_Datasets" / "test.csv",
+            ),
+            (
+                _REPO_ROOT / "train.csv",
+                _REPO_ROOT / "test.csv",
+            ),
+        ]
+
         train_url = "https://raw.githubusercontent.com/mhjabreel/CharCnn_Keras/master/data/ag_news_csv/train.csv"
         test_url = "https://raw.githubusercontent.com/mhjabreel/CharCnn_Keras/master/data/ag_news_csv/test.csv"
 
         try:
-            # 1. Try Local Load (Priority 1: AG_News_Datasets/ directory)
-            if os.path.exists(train_file_alt) and os.path.exists(test_file_alt):
-                print(f"  ✅ Found local data files in AG_News_Datasets/ directory. Loading...")
-                train_df = pd.read_csv(train_file_alt, header=None, names=['label', 'title', 'text'])
-                test_df = pd.read_csv(test_file_alt, header=None, names=['label', 'title', 'text'])
-            # Priority 2: Check root directory
-            elif os.path.exists(train_file) and os.path.exists(test_file):
-                print(f"  ✅ Found local data files ({train_file}, {test_file}). Loading...")
-                train_df = pd.read_csv(train_file, header=None, names=['label', 'title', 'text'])
-                test_df = pd.read_csv(test_file, header=None, names=['label', 'title', 'text'])
-            
-            # 2. Try Download
-            else:
+            train_df = None
+            test_df = None
+            for train_path, test_path in candidates:
+                if train_path.is_file() and test_path.is_file():
+                    rel = train_path.parent.relative_to(_REPO_ROOT)
+                    print(f"  ✅ Found local AG News CSVs under {rel}/. Loading...")
+                    train_df = pd.read_csv(str(train_path), header=None, names=['label', 'title', 'text'])
+                    test_df = pd.read_csv(str(test_path), header=None, names=['label', 'title', 'text'])
+                    break
+
+            if train_df is None:
                 print("  🌐 Local data not found. Downloading from GitHub...")
                 print(f"     Source: {train_url}")
-                
-                # Train Data
+                dest_dir = _REPO_ROOT / "data" / "AG News Datasets"
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                train_path = dest_dir / "train.csv"
+                test_path = dest_dir / "test.csv"
+
                 with urllib.request.urlopen(train_url, timeout=20) as response:
                     data = response.read().decode('utf-8')
-                    # Save to root directory for next time
-                    with open(train_file, 'w', encoding='utf-8') as f:
-                        f.write(data)
+                    train_path.write_text(data, encoding='utf-8')
                     train_df = pd.read_csv(io.StringIO(data), header=None, names=['label', 'title', 'text'])
-                
-                # Test Data
+
                 with urllib.request.urlopen(test_url, timeout=20) as response:
                     data = response.read().decode('utf-8')
-                    with open(test_file, 'w', encoding='utf-8') as f:
-                        f.write(data)
+                    test_path.write_text(data, encoding='utf-8')
                     test_df = pd.read_csv(io.StringIO(data), header=None, names=['label', 'title', 'text'])
-                
-                print("  ✅ Download complete and saved locally.")
+
+                print(f"  ✅ Download complete. Saved under {dest_dir.relative_to(_REPO_ROOT)}/")
 
         except Exception as e:
             print(f"\n❌ CRITICAL ERROR: Data loading failed: {e}")
             print("🛑 STRICT MODE: Synthetic data generation is DISABLED to ensure validity.")
-            print("   Please ensure internet access or manually place 'train.csv' and 'test.csv' in the folder.")
+            print("   Place AG News train.csv and test.csv under data/AG News Datasets/ (or see data_loader._load_ag_news).")
             raise e
 
         # Process Data

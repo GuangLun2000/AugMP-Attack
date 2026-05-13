@@ -6,7 +6,7 @@ classify probes with the SeqCLS head, then generate an explanation with the Caus
 Example:
   python run_downstream_generation.py \
     --checkpoint results/global_checkpoint \
-    --probes data/ag_news_business_30.json \
+    --probes "data/AG News Datasets/ag_news_business_30.json" \
     --output results/downstream_gen.jsonl \
     --stable
 """
@@ -326,7 +326,7 @@ def main() -> None:
         help="Path to global_model.pt or directory containing global_model.pt + checkpoint_metadata.json",
     )
     parser.add_argument(
-        "--probes", type=Path, default=Path("data/ag_news_business_30.json"),
+        "--probes", type=Path, default=Path("data/AG News Datasets/ag_news_business_30.json"),
         help="JSON list of {id, news_text, ...}",
     )
     parser.add_argument("--output", type=Path, required=True, help="Output JSONL path")
@@ -355,13 +355,34 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    _repo = Path(__file__).resolve().parent
+    checkpoint_arg = args.checkpoint
+    if not checkpoint_arg.is_absolute():
+        checkpoint_arg = _repo / checkpoint_arg
+
+    probes_path = args.probes
+    if not probes_path.is_absolute():
+        probes_path = _repo / probes_path
+    if not probes_path.is_file():
+        for alt in (
+            _repo / "data" / "AG News Datasets" / args.probes.name,
+            _repo / "data" / args.probes.name,
+        ):
+            if alt.is_file():
+                probes_path = alt
+                break
+
     device = torch.device(args.device)
-    pt_path, meta_path = resolve_checkpoint_paths(args.checkpoint)
+    pt_path, meta_path = resolve_checkpoint_paths(checkpoint_arg)
     if not pt_path.is_file():
         print(f"Checkpoint file not found: {pt_path}", file=sys.stderr)
         sys.exit(1)
 
-    probes = load_probes(args.probes)
+    if not probes_path.is_file():
+        print(f"Probes file not found: {probes_path}", file=sys.stderr)
+        sys.exit(1)
+
+    probes = load_probes(probes_path)
     news, meta = load_news_classifier(pt_path, meta_path)
     base_name = args.base_model or meta["model_name"]
     if args.base_model and args.base_model != meta["model_name"]:

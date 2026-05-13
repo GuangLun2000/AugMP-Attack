@@ -13,7 +13,7 @@ Global checkpoint (Fed → downstream)
   "lora_dropout": 0.1,
   "lora_target_modules": null
 }
-Running: /usr/bin/python3 run_downstream_generation.py --checkpoint results/global_checkpoint --probes data/ag_news_business_30.json --output results/colab_downstream_gen.jsonl --stable --device cuda
+Running: /usr/bin/python3 run_downstream_generation.py --checkpoint results/global_checkpoint --probes "data/AG News Datasets/ag_news_business_30.json" --output results/colab_downstream_gen.jsonl --stable --device cuda
 
 ============================================================
 ALL probe results — 30 rows from results/colab_downstream_gen.jsonl

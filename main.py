@@ -422,7 +422,19 @@ def run_downstream_task2_if_configured(config: Dict, results_dir: Path) -> None:
         )
         return
 
-    probes = Path(config.get("downstream_probes", "data/ag_news_curated_10.json"))
+    repo_root = Path(__file__).resolve().parent
+    raw = config.get("downstream_probes", "data/AG News Datasets/ag_news_business_30.json")
+    probes = Path(raw)
+    if not probes.is_absolute():
+        probes = repo_root / probes
+    if not probes.is_file():
+        for alt in (
+            repo_root / "data" / "AG News Datasets" / Path(raw).name,
+            repo_root / "data" / Path(raw).name,
+        ):
+            if alt.is_file():
+                probes = alt
+                break
     if not probes.is_file():
         print(f"\n⚠️  Task 2 skipped: probes file not found: {probes}")
         return
@@ -1001,7 +1013,7 @@ def main(config_overrides: Optional[Dict] = None):
         'global_checkpoint_subdir': 'global_checkpoint',  # Subfolder name under results/ (same run uses results_dir from setup)
         # ========== Task 2: optional downstream causal generation (same run as FL) ==========
         'run_downstream_after_fl': True,  # True: subprocess run_downstream_generation.py after checkpoint save
-        'downstream_probes': 'data/ag_news_business_30.json',  # Probe JSON path (relative to repo root / cwd)
+        'downstream_probes': 'data/AG News Datasets/ag_news_business_30.json',  # relative to repo root
         'downstream_output': None,  # None -> results/<experiment_name>_downstream_gen.jsonl; else path (relative to results/ if not absolute)
         'downstream_device': None,  # None -> cuda if available else cpu
         # Extra CLI tokens for run_downstream_generation.py (SeqCLS classify + CausalLM explain)

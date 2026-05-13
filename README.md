@@ -37,8 +37,6 @@
 └── data/                              # Training and testing datasets
 ```
 
-> **Note:** `client.py` exposes a manipulator-role client class named `AttackerClient` for compatibility with common FL codebases; filenames `attack_baseline_*.py` match prior work and import paths.
-
 ## Supported Models
 
 - Encoder-only (BERT-style): `distilbert-base-uncased`, `bert-base-uncased`, `roberta-base`, `microsoft/deberta-v3-base`
@@ -120,5 +118,3 @@ python run_downstream_generation.py \
 `--stable` is a conservative greedy preset; use **`--help`** for decoding flags. Each output line is JSONL (labels + text); compare predictions to ground-truth categories and read the rationale fields to analyze downstream behavior under different global models (including manipulation settings).
 
 **Other decoder families:** implement `DecoderAdapter` (`matches`, `transfer_backbone`), append to **`ADAPTER_REGISTRY`** in [`decoder_adapters.py`](decoder_adapters.py), then point Task 2 at checkpoints with the same **`model_name`**.
-
-<br>
